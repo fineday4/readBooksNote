@@ -1,0 +1,27 @@
+<!DCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <title>Vue自定义组件</title>
+    </head>
+    <body>
+        <div id="app">
+            <ul>
+                <my-component-li v-for="item in items" v-bind:item="item"></my-component-li>
+            </ul>
+        </div>
+        <script>
+            Vue.component("my-component-li",{
+                props:["item"],
+                template:'<li>{{item}}</li>'
+            })
+            var app = new Vue({
+                el:"#app",
+                data:{
+                    items:["fads","243r","9ijn"]
+                }
+            })
+        </script>
+    </body>
+</html>

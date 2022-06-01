@@ -1,0 +1,30 @@
+<!DCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <title>表单输入绑定</title>
+    </head> 
+    <body>
+        <div id="app">
+            <input type="text" v-model="message"/>
+            <p>Message: {{message}}</p>
+            <select v-model="selected">
+                <option disabled value="">请选择</option>
+                <option>A</option>
+                <option>B</option>
+                <option>C</option>
+            </select>
+            <span>Selected:{{selected}}</span>
+        </div> 
+        <script>
+            var app = new Vue({
+                el:"#app",
+                data:{
+                    message:"Hello Vue!!",
+                    selected:''
+                }
+            })
+        </script>
+    </body>
+</html>

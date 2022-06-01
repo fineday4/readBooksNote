@@ -1,0 +1,62 @@
+<!DCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+        <title>Vue diygie cheng</title>
+    </head>
+    <body>
+        <div id="app">
+            <div>
+                名称：{{info.name}}
+            </div>
+            <div>
+                url:{{info.url}}
+            </div>
+            <li v-for="link in info.links">
+                {{link.name}} ---> {{link.url}}
+            </li>
+        </div>
+
+        <script>
+            var app = new Vue({
+                el:"#app",
+                data(){
+                    return {
+                        info:{
+                            "name": "baidu",
+                            "url":"http://www.baidu.com",
+                            "page":66,
+                            "isNodeProfit":true,
+                            "address":{
+                                "street":"beijing",
+                                "city":"beigin1",
+                                "country":"zhongguo"
+                            },
+                            "links":[
+                                {
+                                    "name":"Google",
+                                    "url":"http://www.google.com"
+                                },
+                                {
+                                    "name":"baidu",
+                                    "url":"www.baidu.com"
+                                },
+                                {
+                                    "name":"Sougou",
+                                    "url":"http://www.sougou.com"
+                                }
+                            ]
+                        }
+                    }
+                },
+                mounted() {
+                    axios
+                        .get('data.json')
+                        .then(response => this.info=response.data)
+                }
+            })
+        </script>
+    </body>
+</html>

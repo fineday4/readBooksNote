@@ -1,0 +1,25 @@
+{
+    "name": "baidu",
+    "url":"http://www.baidu.com",
+    "page":66,
+    "isNodeProfit":true,
+    "address":{
+        "street":"beijing",
+        "city":"beigin1",
+        "country":"zhongguo"
+    },
+    "link":[
+        {
+            "name":"Google",
+            "url":"http://www.google.com"
+        },
+        {
+            "name":"baidu",
+            "url":"www.baidu.com"
+        },
+        {
+            "name":"Sougou",
+            "url":"http://www.sougou.com"
+        }
+    ]
+}

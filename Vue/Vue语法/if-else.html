@@ -1,0 +1,23 @@
+<!DCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <title>Vue diygie cheng</title>
+    </head>
+    <body>
+        <div id="app">
+            <h1 v-if="type === 'A'">Vue is awesome!</h1>
+            <h1 v-else-if = "type === 'B'">Oh BBB 😢</h1>
+            <h1 v-else>Oh no 😢</h1>
+        </div>
+        <script>
+            var app = new Vue({
+                el:"#app",
+                data:{
+                    type: 'A'
+                }
+            })
+        </script>
+    </body>
+</html>

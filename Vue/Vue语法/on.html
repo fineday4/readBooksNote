@@ -1,0 +1,26 @@
+<!DCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <title>事件处理</title>
+    </head>
+    <body>
+        <div id="app">
+            <button v-on:click="greet">Greet</button>
+        </div>
+        <script>
+            var app = new Vue({
+                el:"#app",
+                data:{
+                    message:"asdfasd"
+                },
+                methods:{
+                    greet:function(){
+                        alert(this.message)
+                    }
+                }
+            })
+        </script>
+    </body>
+</html>

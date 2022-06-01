@@ -1,0 +1,46 @@
+<!DCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+        <title>Vue插槽</title>
+    </head> 
+    <body>
+        <div id="app">
+            <todo>
+                <todo-title slot="todo-title" v-bind:title="title"></todo-title>
+                <todo-items slot="todo-items" v-for="(item, index) in items" v-bind:item=item v-bind:index="index" v-on:remove="removeItems"></todo-items>
+            </todo>
+        </div> 
+        <script>
+            Vue.component("todo",{
+                template:'<div><slot name=\'todo-title\'></slot><ul><slot name=\'todo-items\'></slot></ul></div>'
+            });
+            Vue.component("todo-title",{
+                props:['title'],
+                template:"<div>{{title}}</div>"
+            });
+            Vue.component("todo-items",{
+                props:['item','index'],
+                template:"<li>{{index}} -- {{item}}<button @click='remove'>删除</button></li>",
+                methods:{
+                    remove:function(){
+                        this.$emit("remove") //emit(remove)绑定了v-on:remove，v-on:remove绑定了methods:removeItems
+                    }
+                }
+            })
+            var app = new Vue({
+                el:"#app",
+                data:{
+                    title:'标题',
+                    items: ['asdf','asdf','324f'] 
+                },
+                methods:{
+                    removeItems:function(index){
+                        this.items.splice(index, 1)
+                    }
+                }
+            })
+        </script>
+    </body>
+</html>
