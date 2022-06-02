@@ -5,6 +5,7 @@ Data语意学 --- A["3.0 虚继承空对象"]
 Data语意学 --- B["3.1 Data Member的绑定"]
 Data语意学 --- C["3.2 Data Member的布局"]
 Data语意学 --- D["3.3 Data Member的存取"]
+Data语意学 --- E["3.4 继承与Data Member"]
 ```
 ### 3.0 虚继承空对象
 
@@ -506,6 +507,133 @@ $4 = 0x7fffffffe31e
 $5 = 0x7fffffffe31f
 (gdb) 
 ```
+
+
+#### 2. 如果x为非静态数据成员
+
+实验一：非继承和继承的成员数据的存取过程
+
+```c++
+#include <iostream>
+
+using namespace std;
+
+class A {
+	public:
+		A(int a1, int a2):m_a1(a1), m_a2(a2){}
+		virtual void print()
+		{
+			cout << "A.a1: " << m_a1 << endl;
+		}
+		virtual void printa2()
+		{
+			cout << "A.a2: " << m_a2 << endl;
+		}
+		virtual ~A()
+		{
+			cout << "~A()" << endl;
+		}
+	private:
+		int m_a1;
+	public:
+		int m_a2;
+
+};
+
+class B:public A {
+	public:
+	void printa2()
+	{
+		cout << "B.m_a2: " << m_a2 << endl;//获取父类的成员编程
+	}
+	void printb()
+	{
+		cout << "B.b: " << m_b1 << endl; //获取自己的成员编程
+	}
+	B(int b1):A(1,2), m_b1(b1){}
+
+	~B(){
+		cout << "~B()" << endl;
+	}
+	private:
+	int m_b1;  
+};
+
+int main()
+{
+	B b(66);
+	cout << "Get m_a2" << endl;
+	b.printa2();
+	cout << "Get m_b1" << endl;
+	b.printb();
+	b.print(); //使用父类方法获取变量
+	return 0;
+}
+
+```
+实验过程：
+
+```c++
+(gdb) tb 31  //断点到printa2处
+Temporary breakpoint 1 at 0x14e0: file testNoStaticMember1.cpp, line 31.
+(gdb) r
+Temporary breakpoint 1, B::printa2 (this=0x7fffffffe320) at testNoStaticMember1.cpp:31
+31			cout << "B.m_a2: " << m_a2 << endl;
+(gdb) disassemble
+Dump of assembler code for function B::printa2():
+   0x00005555555554d0 <+0>:	endbr64 
+   0x00005555555554d4 <+4>:	push   %rbp
+   0x00005555555554d5 <+5>:	mov    %rsp,%rbp
+   0x00005555555554d8 <+8>:	sub    $0x10,%rsp
+   0x00005555555554dc <+12>:	mov    %rdi,-0x8(%rbp)
+=> 0x00005555555554e0 <+16>:	lea    0xb31(%rip),%rsi        # 0x555555556018
+   0x00005555555554e7 <+23>:	lea    0x2b52(%rip),%rdi        # 0x555555558040 <_ZSt4cout@@GLIBCXX_3.4>
+   0x00005555555554ee <+30>:	callq  0x5555555550d0 <_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc@plt>
+   0x00005555555554f3 <+35>:	mov    %rax,%rdx
+   0x00005555555554f6 <+38>:	mov    -0x8(%rbp),%rax
+   0x00005555555554fa <+42>:	mov    0xc(%rax),%eax   //这里就是对m_a2进行取的过程
+   0x00005555555554fd <+45>:	mov    %eax,%esi
+   0x00005555555554ff <+47>:	mov    %rdx,%rdi
+   0x0000555555555502 <+50>:	callq  0x555555555120 <_ZNSolsEi@plt>
+   0x0000555555555507 <+55>:	mov    %rax,%rdx
+   0x000055555555550a <+58>:	mov    0x2abf(%rip),%rax        # 0x555555557fd0
+   0x0000555555555511 <+65>:	mov    %rax,%rsi
+   0x0000555555555514 <+68>:	mov    %rdx,%rdi
+   0x0000555555555517 <+71>:	callq  0x5555555550f0 <_ZNSolsEPFRSoS_E@plt>
+   0x000055555555551c <+76>:	nop
+   0x000055555555551d <+77>:	leaveq 
+   0x000055555555551e <+78>:	retq
+(gdb) ni //在gdb上设置set disassemble-next-line on后可以使用ni进行汇编语言级别调试
+0x00005555555554fa	31			cout << "B.m_a2: " << m_a2 << endl;
+   0x00005555555554f6 <B::printa2()+38>:	48 8b 45 f8	mov    -0x8(%rbp),%rax
+=> 0x00005555555554fa <B::printa2()+42>:	8b 40 0c	mov    0xc(%rax),%eax
+   0x00005555555554fd <B::printa2()+45>:	89 c6	mov    %eax,%esi
+   0x00005555555554ff <B::printa2()+47>:	48 89 d7	mov    %rdx,%rdi
+   0x0000555555555502 <B::printa2()+50>:	e8 19 fc ff ff	callq  0x555555555120 <_ZNSolsEi@plt>
+   0x0000555555555507 <B::printa2()+55>:	48 89 c2	mov    %rax,%rdx
+(gdb) p/x $rax//查看rax寄存器
+$4 = 0x7fffffffe320
+(gdb) x/1xw 0x7fffffffe320+0xc //获取m_a2的值
+0x7fffffffe32c:	0x00000002
+(gdb) tb 35 //断点到printb处
+Temporary breakpoint 2 at 0x555555555530: file testNoStaticMember1.cpp, line 35.
+(gdb) c
+Temporary breakpoint 2, B::printb (this=0x7fffffffe320) at testNoStaticMember1.cpp:35
+35			cout << "B.b: " << m_b1 << endl;
+(gdb) ni
+0x000055555555554a	35			cout << "B.b: " << m_b1 << endl;
+   0x0000555555555546 <B::printb()+38>:	48 8b 45 f8	mov    -0x8(%rbp),%rax
+=> 0x000055555555554a <B::printb()+42>:	8b 40 10	mov    0x10(%rax),%eax
+   0x000055555555554d <B::printb()+45>:	89 c6	mov    %eax,%esi
+   0x000055555555554f <B::printb()+47>:	48 89 d7	mov    %rdx,%rdi
+   0x0000555555555552 <B::printb()+50>:	e8 c9 fb ff ff	callq  0x555555555120 <_ZNSolsEi@plt>
+   0x0000555555555557 <B::printb()+55>:	48 89 c2	mov    %rax,%rdx
+(gdb) x/1xw 0x10+$rax //获取m_b1的值
+0x7fffffffe330:	0x00000042
+```
+
+实验结论：
+**非继承和继承的成员数据的存取过程一样，成员数据在编译时期就已经确定位置了，可直接存取。**
 
 ### 3.1 Data Member的绑定
 
