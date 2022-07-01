@@ -7,6 +7,21 @@ Data语意学 --- C["3.2 Data Member的布局"]
 Data语意学 --- D["3.3 Data Member的存取"]
 Data语意学 --- E["3.4 继承与Data Member"]
 ```
+
+下文实验使用的g++版本如下：
+```
+Using built-in specs.
+COLLECT_GCC=g++
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper
+OFFLOAD_TARGET_NAMES=nvptx-none:hsa
+OFFLOAD_TARGET_DEFAULT=1
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Ubuntu 9.4.0-1ubuntu1~20.04.1' --with-bugurl=file:///usr/share/doc/gcc-9/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,gm2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-9 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-9-Av3uEd/gcc-9-9.4.0/debian/tmp-nvptx/usr,hsa --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Thread model: posix
+gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.1) 
+
+```
+
 ### 3.0 虚继承空对象
 
 ### 3.1 Data Member的绑定
@@ -635,6 +650,770 @@ Temporary breakpoint 2, B::printb (this=0x7fffffffe320) at testNoStaticMember1.c
 实验结论：
 **非继承和继承的成员数据的存取过程一样，成员数据在编译时期就已经确定位置了，可直接存取。**
 
-### 3.1 Data Member的绑定
+### 3.4 继承与Data Member
 
-### 3.2 Data Member的布局
+入门实验：无继承下的Data Member布局
+
+实验代码：
+
+```c++
+//fileName : Point2D.cpp
+#include <iostream>
+
+using namespace std;
+
+class Point2D{
+	public:
+		Point2D(int x, int y):_x(x), _y(y) {}
+		~Point2D() {
+			cout << "~Point2D" << endl;
+		}
+
+		void print() {
+			cout << "( " << _x << " , " << _y << " )" << endl;
+		}
+	private:
+		int _x, _y;
+};
+
+class Point3D{
+	public:
+		Point3D(int x, int y, int z):_x(x), _y(y), _z(z) {}
+		~Point3D() {
+			cout << "~Point3D" << endl;
+		}
+
+		void print() {
+			cout << "( " << _x << " , " << _y << " , " << _z <<  " )" << endl;
+		}
+	private:
+		int _x, _y, _z;
+};
+
+int main()
+{
+	Point2D pt2(1,2);
+	pt2.print();
+	Point3D pt3(3,4,5);
+	pt3.print();
+
+	return 0;
+}
+
+```
+
+调试过程：
+
+```c++
+Temporary breakpoint 1, main () at Point2D.cpp:36
+36		pt2.print();
+(gdb) tb 14
+Temporary breakpoint 2 at 0x5555555553b8: file Point2D.cpp, line 14.
+(gdb) c
+Continuing.
+
+Temporary breakpoint 2, Point2D::print (this=0x7fffffffe304) at Point2D.cpp:14
+14				cout << "( " << _x << " , " << _y << " )" << endl;
+(gdb) disassemble
+Dump of assembler code for function Point2D::print():
+   0x00005555555553a8 <+0>:	endbr64 
+   0x00005555555553ac <+4>:	push   %rbp
+   0x00005555555553ad <+5>:	mov    %rsp,%rbp
+   0x00005555555553b0 <+8>:	sub    $0x10,%rsp
+   0x00005555555553b4 <+12>:	mov    %rdi,-0x8(%rbp)
+=> 0x00005555555553b8 <+16>:	lea    0xc4f(%rip),%rsi        # 0x55555555600e
+   0x00005555555553bf <+23>:	lea    0x2c7a(%rip),%rdi        # 0x555555558040 <_ZSt4cout@@GLIBCXX_3.4>
+   0x00005555555553c6 <+30>:	callq  0x5555555550c0 <_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc@plt>
+   0x00005555555553cb <+35>:	mov    %rax,%rdx
+   0x00005555555553ce <+38>:	mov    -0x8(%rbp),%rax
+   0x00005555555553d2 <+42>:	mov    (%rax),%eax   //对成员变量_x的读取
+   0x00005555555553d4 <+44>:	mov    %eax,%esi
+   0x00005555555553d6 <+46>:	mov    %rdx,%rdi
+   0x00005555555553d9 <+49>:	callq  0x555555555100 <_ZNSolsEi@plt>
+   0x00005555555553de <+54>:	lea    0xc2c(%rip),%rsi        # 0x555555556011
+   0x00005555555553e5 <+61>:	mov    %rax,%rdi
+   0x00005555555553e8 <+64>:	callq  0x5555555550c0 <_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc@plt>
+   0x00005555555553ed <+69>:	mov    %rax,%rdx
+   0x00005555555553f0 <+72>:	mov    -0x8(%rbp),%rax
+   0x00005555555553f4 <+76>:	mov    0x4(%rax),%eax   //对成员变量_y的读取
+   0x00005555555553f7 <+79>:	mov    %eax,%esi
+   0x00005555555553f9 <+81>:	mov    %rdx,%rdi
+   0x00005555555553fc <+84>:	callq  0x555555555100 <_ZNSolsEi@plt>
+   0x0000555555555401 <+89>:	lea    0xc0d(%rip),%rsi        # 0x555555556015
+   0x0000555555555408 <+96>:	mov    %rax,%rdi
+   0x000055555555540b <+99>:	callq  0x5555555550c0 <_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc@plt>
+   0x0000555555555410 <+104>:	mov    %rax,%rdx
+   0x0000555555555413 <+107>:	mov    0x2bb6(%rip),%rax        # 0x555555557fd0
+   0x000055555555541a <+114>:	mov    %rax,%rsi
+   0x000055555555541d <+117>:	mov    %rdx,%rdi
+   0x0000555555555420 <+120>:	callq  0x5555555550d0 <_ZNSolsEPFRSoS_E@plt>
+   0x0000555555555425 <+125>:	nop
+   0x0000555555555426 <+126>:	leaveq 
+   0x0000555555555427 <+127>:	retq   
+End of assembler dump.
+(gdb) set disassemble-next-line on
+(gdb) ni 5
+(gdb) x/1xw $rax
+0x7fffffffe304:	0x00000001  //_x的值
+(gdb) ni 9
+(gdb) x/1xw $rax + 0x4
+0x7fffffffe308:	0x00000002  //_y的值
+...
+(gdb) ni 5
+0x00005555555554c4	27				cout << "( " << _x << " , " << _y << " , " << _z <<  " )" << endl;
+   0x00005555555554c0 <Point3D::print()+38>:	48 8b 45 f8	mov    -0x8(%rbp),%rax
+=> 0x00005555555554c4 <Point3D::print()+42>:	8b 00	mov    (%rax),%eax //读取_x, _y, _z三个变量
+   0x00005555555554c6 <Point3D::print()+44>:	89 c6	mov    %eax,%esi
+   0x00005555555554c8 <Point3D::print()+46>:	48 89 d7	mov    %rdx,%rdi
+   0x00005555555554cb <Point3D::print()+49>:	e8 30 fc ff ff	callq  0x555555555100 <_ZNSolsEi@plt>
+   0x00005555555554d0 <Point3D::print()+54>:	48 8d 35 3a 0b 00 00	lea    0xb3a(%rip),%rsi        # 0x555555556011
+   0x00005555555554d7 <Point3D::print()+61>:	48 89 c7	mov    %rax,%rdi
+   0x00005555555554da <Point3D::print()+64>:	e8 e1 fb ff ff	callq  0x5555555550c0 <_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc@plt>
+   0x00005555555554df <Point3D::print()+69>:	48 89 c2	mov    %rax,%rdx
+(gdb) x/3xw $rax  //一次打印处_x, _y, _z三个变量的值
+0x7fffffffe30c:	0x00000003	0x00000004	0x00000005
+
+
+```
+
+实验结论:
+
+对于Point2D的两个成员变量的内存布局如下表所示：
+|变量地址|变量名|
+|--|--|
+|0x7fffffffe304|_x|
+|0x7fffffffe308|_y|
+
+结合变量_x和_y的定义位置可以得出一个推论：先定义的变量在低地址。
+
+同理可以推断出Point3D的三个成员变量的内存布局如下表所示：
+|变量地址|变量名|
+|--|--|
+|0x7fffffffe30c|_x|
+|0x7fffffffe310|_y|
+|0x7fffffffe314|_z|
+
+考虑四种情况：
+
+1. 单一继承且不含virtual functions;
+2. 单一继承并含virtual functions;
+3. 多重继承；
+4. 虚拟继承；
+
+#### 只要继承不要多态
+考虑上述的第一种情况
+
+实验二：具体继承下的数据成员分布
+
+```c++
+#include <iostream>
+
+using namespace std;
+
+class Point2D{
+	public:
+		Point2D(float x = 0.0, float y = 0.0): _x(x), _y(y){}
+
+		float x() {return _x;}
+
+		float y() {return _y;}
+
+		void x(float newX) {_x = newX;}
+
+		void y(float newY) {_y = newY;}
+
+		void operator += (Point2D &rhs) {
+			_x += rhs.x();
+			_y += rhs.y();
+		}
+
+	protected:
+		float _x, _y;
+
+};
+
+class Point3D: public Point2D{
+	public:
+		Point3D(float x = 0.0, float y = 0.0, float z = 0.0): Point2D(x, y), _z(z){}
+
+		float z() {return _z;}
+
+		void z(float newZ) {_z = newZ;}
+
+		void operator += (Point3D &rhs) {
+			Point2D::operator+=(rhs);
+			_z += rhs.z();
+		}
+
+	protected:
+		float _z;
+};
+
+int main()
+{
+	Point2D pt2(1.0, 2.9);
+
+	Point3D pt3(3.2, 4.3, 5.4);
+
+	cout << "( " << pt2.x() << " , " << pt2.y() << " )" << endl;
+
+	cout << "( " << pt3.x() << " , " << pt3.y() << " , " << pt3.z() << " )" << endl;
+
+	return 0;
+}
+
+```
+
+调试过程
+
+```c++
+(gdb) tb 31
+Temporary breakpoint 1 at 0x1488: file Chart3_2.cpp, line 31.
+(gdb) r
+Starting program: /mnt/hgfs/VMShare/Inside_the_CPP_Object_Model/DataAlgh/a.out 
+( 1 , 2.9 )
+
+Temporary breakpoint 1, Point3D::z (this=0x7fffffffe330) at Chart3_2.cpp:31
+31			float z() {return _z;}
+(gdb) set disassemble-next-line on
+(gdb) disassemble
+Dump of assembler code for function Point3D::z():
+=> 0x0000555555555488 <+0>:	endbr64 
+   0x000055555555548c <+4>:	push   %rbp
+   0x000055555555548d <+5>:	mov    %rsp,%rbp
+   0x0000555555555490 <+8>:	mov    %rdi,-0x8(%rbp)
+   0x0000555555555494 <+12>:	mov    -0x8(%rbp),%rax
+   0x0000555555555498 <+16>:	movss  0x8(%rax),%xmm0  //xmm0保存的就是_z
+   0x000055555555549d <+21>:	pop    %rbp
+   0x000055555555549e <+22>:	retq   
+End of assembler dump.
+(gdb) ni 5
+0x0000555555555498	31			float z() {return _z;}
+   0x0000555555555494 <Point3D::z()+12>:	48 8b 45 f8	mov    -0x8(%rbp),%rax
+=> 0x0000555555555498 <Point3D::z()+16>:	f3 0f 10 40 08	movss  0x8(%rax),%xmm0
+(gdb) x/3xw $rax
+0x7fffffffe30c:	0x404ccccd	0x4089999a	0x40accccd
+(gdb) 
+```
+
+结论：
+|Point2D变量地址|变量名|
+|--|--|
+|0x7fffffffe304|_x|
+|0x7fffffffe308|_y|
+
+|Point3D变量地址|变量名|变量所属对象的类|
+|--|--|--|
+|0x7fffffffe30c|_x|Point2D|
+|0x7fffffffe310|_y|Point2D|
+|0x7fffffffe314|_z|Point3D|
+
+具体继承的使用场景和注意事项
+
+设计的好处：
+
+1. 将把对_x和_y坐标的管理局部化了，同时表现出了Point2D和Point3D之间的密切关系。
+
+设计的坏处：
+1. 经验不足的人可能会重复设计一些相同的操作函数；
+2. 把一个class分解成两层或更多层，有可能会为了抽象化而导致空间膨胀。
+
+坏处的第二点可以用下面的示例说明问题：
+
+实验：说明类继承导致空间膨胀的示例
+
+测试代码：
+
+```c++
+#include <iostream>
+
+using namespace std;
+
+
+class Concrete {
+	public:
+		Concrete():val(1), c1(2), c2(3),c3(4)
+		{
+			cout << "Concrete()" << endl;
+		}
+		~Concrete()
+		{
+			cout << "~Concrete()" << endl;
+		}
+
+	private:
+		int val;
+		char c1;
+		char c2;
+		char c3;
+};
+
+class Concrete1 {
+	public:
+		Concrete1():val(5),c1(6)
+		{
+			cout << "Concrete1()" << endl;
+		}
+		~Concrete1()
+		{
+			cout << "~Concrete1()" << endl;
+		}
+
+	private:
+		int val;
+		char c1;
+};
+
+
+class Concrete2: public Concrete1 {
+	public:
+		Concrete2():bit2(7)
+		{
+			cout << "Concrete2()" << endl;
+		}
+		~Concrete2()
+		{
+			cout << "~Concrete2()" << endl;
+		}
+
+	private:
+		char bit2;
+};
+
+class Concrete3: public Concrete2 {
+	public:
+		Concrete3():bit3(8)
+		{
+			cout << "Concrete3()" << endl;
+		}
+		~Concrete3()
+		{
+			cout << "~Concrete3()" << endl;
+		}
+
+	private:
+		char bit3;
+};
+
+int main()
+{
+	Concrete3 c3;
+	Concrete1* c1 = &c3;
+	Concrete c0;
+	cout << sizeof(c3) <<  " &c3: " << hex << &c3 << endl;
+	cout << sizeof(c0) << " &c0:" << hex << &c0 << endl;
+	cout << sizeof(*c1) << " c1: " << hex << c1 << endl;
+	return 0;
+}
+
+```
+
+测试过程：
+
+```c++
+Concrete1()
+Concrete2()
+Concrete3()
+Concrete()
+8 &c3: 0x7ffce1fe7178
+8 &c0:0x7ffce1fe7180
+8 c1: 0x7ffce1fe7178
+~Concrete()
+~Concrete3()
+~Concrete2()
+~Concrete1()
+
+//更具体的调试看一下内存的值
+Temporary breakpoint 1, main () at Chart3_3.cpp:78
+78		cout << sizeof(*c1) << " c1: " << hex << c1 << endl;
+(gdb) p c3
+$1 = {<Concrete2> = {<Concrete1> = {val = 5, c1 = 6 '\006'}, bit2 = 7 '\a'}, bit3 = 8 '\b'}
+(gdb) p/x &c3
+$2 = 0x7fffffffe308
+(gdb) p sizeof(c3)
+$3 = 8
+(gdb) x/2xw &c3
+0x7fffffffe308:	0x00000005	0x00080706  //这里的并没有出现侯捷在文中提到的类的字节对齐导致的空间浪费
+(gdb) 
+
+```
+
+结论：
+
+依据侯捷在文中的描述，c3的空间结构应该如下表：
+|地址|变量|所属类|
+|--|--|--|
+|0x7ffce1fe7178|val|Concrete1|
+|0x7ffce1fe717c|c1|Concrete1|
+|0x7ffce1fe717d|padding|Concrete1|
+|0x7ffce1fe717e|padding|Concrete1|
+|0x7ffce1fe717f|padding|Concrete1|
+|0x7ffce1fe7180|bit2|Concrete2|
+|0x7ffce1fe7181|padding|Concrete2|
+|0x7ffce1fe7182|padding|Concrete2|
+|0x7ffce1fe7183|padding|Concrete2|
+|0x7ffce1fe7184|bit3|Concrete3|
+|0x7ffce1fe7185|padding|Concrete3|
+|0x7ffce1fe7186|padding|Concrete3|
+|0x7ffce1fe7187|padding|Concrete3|
+
+共占据16个字节
+
+但是从实验来看并不是这样，而是：
+
+|地址|变量|所属类|
+|--|--|--|
+|0x7ffce1fe7178|val|Concrete1|
+|0x7ffce1fe717c|c1|Concrete1|
+|0x7ffce1fe717d|bit2|Concrete2|
+|0x7ffce1fe717e|bit3|Concrete3|
+|0x7ffce1fe717f|padding|Concrete3|
+
+共占据8个字节
+
+<font face="楷体" color='red'>这就表明其空间并没有发生膨胀，且通过c1可以获取到c3中的bit2和bit3变量。</font>
+
+#### 加上多态
+
+多态要解决的问题：
+
+```c++
+void  foo(Point2d &p1, Point2d &p2) {
+   //...
+   p1 += p2;
+   //...
+}
+```
+
+在foo函数中p1和p2既可以时Point2d也可以时Point3d对象，实现一个函数同时操作多种数据类型。
+
+多态在时间可空间上带来的代价：
+
+1. 类多出一个虚表；
+2. 每一个类对象多出一个虚表指针；
+3. 加强构造函数，使他能够为虚表指针赋值；
+4. 加强析构函数，销毁虚表指针；
+
+从哪些维度考虑平衡多态的利弊：
+
+1. 类对象的个数和生命周期；
+2. 多态程序设计所带来的利益；
+
+实验：虚函数调用过程探究
+
+实验代码：
+
+```c++
+#include <iostream>
+
+using namespace std;
+
+class Point2d{
+	public:
+		Point2d(float x = 0.0, float y = 0.0):_x(x), _y(y)
+		{
+			cout << "Point2d()" << endl;
+		}
+
+		virtual ~Point2d()
+		{
+			cout << "~Point2d" << endl;
+		}
+		virtual float x()
+		{
+			return _x;
+		}
+
+		virtual float y()
+		{
+			return _y;
+		}
+
+		virtual float z()
+		{
+			return 0.0;
+		}
+
+		virtual void z(float z)
+		{
+			cout << "z(float)" << endl;
+		}
+
+		virtual void operator+=(Point2d& rhs)
+		{
+			_x += rhs.x();
+			_y += rhs.y();
+		}
+
+	protected:
+		float _x, _y;
+};
+
+
+class Point3d:public Point2d {
+	public:
+		Point3d(float x = 0.0, float y = 0.0, float z = 0.0)
+			:Point2d(x, y), _z(z)
+		{
+			cout << "Point3d()" << endl;
+		}
+
+		virtual ~Point3d()
+		{
+			cout << "~Point3d()" << endl;
+		}
+
+		float z()
+		{
+			return _z;
+		}
+
+		void z(float newZ)
+		{
+			_z = newZ;
+		}
+
+		void operator+=(Point2d& rhs){
+			Point2d::operator+=(rhs);
+			_z += rhs.z();
+		}
+
+	protected:
+		float _z;
+};
+
+void getZ(Point2d* const pt)
+{
+	cout << "getZ: " << pt->z() << endl;
+}
+
+int main()
+{
+	Point2d p2d(2.1, 2.2);
+	Point3d p3d(3.1, 3.2, 3.3);
+
+	p3d += p2d;
+	
+	getZ(&p2d);  //TODO: 查看getZ对p2d和p3d调用z()函数的实现
+
+	getZ(&p3d);
+	
+	return 0;
+}
+```
+实验过程：
+
+```c++
+(gdb) ni 3
+0x000055555555524d	81		cout << "getZ: " << pt->z() << endl;
+   0x000055555555523a <getZ(Point2d*)+17>:	48 8d 35 f5 0d 00 00	lea    0xdf5(%rip),%rsi        # 0x555555556036
+   0x0000555555555241 <getZ(Point2d*)+24>:	48 8d 3d f8 2d 00 00	lea    0x2df8(%rip),%rdi        # 0x555555558040 <_ZSt4cout@@GLIBCXX_3.4>
+   0x0000555555555248 <getZ(Point2d*)+31>:	e8 93 fe ff ff	callq  0x5555555550e0 <_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc@plt>
+=> 0x000055555555524d <getZ(Point2d*)+36>:	48 89 c3	mov    %rax,%rbx
+(gdb) disassemble
+Dump of assembler code for function getZ(Point2d*):
+   0x0000555555555229 <+0>:	endbr64 
+   0x000055555555522d <+4>:	push   %rbp
+   0x000055555555522e <+5>:	mov    %rsp,%rbp
+   0x0000555555555231 <+8>:	push   %rbx
+   0x0000555555555232 <+9>:	sub    $0x18,%rsp
+   0x0000555555555236 <+13>:	mov    %rdi,-0x18(%rbp)
+   0x000055555555523a <+17>:	lea    0xdf5(%rip),%rsi        # 0x555555556036
+   0x0000555555555241 <+24>:	lea    0x2df8(%rip),%rdi        # 0x555555558040 <_ZSt4cout@@GLIBCXX_3.4>
+   0x0000555555555248 <+31>:	callq  0x5555555550e0 <_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc@plt>
+=> 0x000055555555524d <+36>:	mov    %rax,%rbx
+   0x0000555555555250 <+39>:	mov    -0x18(%rbp),%rax //FIXME: 1. 获取到this指针
+   0x0000555555555254 <+43>:	mov    (%rax),%rax //FIXME: 2. 获取到this指针指向的虚表地址
+   0x0000555555555257 <+46>:	add    $0x20,%rax //FIXME: 3. 虚表地址偏移0x20获取到z()函数的地址指针
+   0x000055555555525b <+50>:	mov    (%rax),%rdx //FIXME: 4. 获取到z()函数的地址
+   0x000055555555525e <+53>:	mov    -0x18(%rbp),%rax
+   0x0000555555555262 <+57>:	mov    %rax,%rdi
+   0x0000555555555265 <+60>:	callq  *%rdx  //FIXME: 5. 执行z()函数
+   0x0000555555555267 <+62>:	mov    %rbx,%rdi
+   0x000055555555526a <+65>:	callq  0x5555555550c0 <_ZNSolsEf@plt>
+```
+
+结论：
+虚函数的执行过程由以下四步：
+1. 获取到this指针；
+2. 获取到this指针指向的虚表地址；
+3. 虚表地址偏移指定的地址获取到要执行的虚函数的地址指针；
+4. 获取到要执行的虚函数的地址；
+5. 执行虚函数；
+
+实函数调用与虚函数调用的区别：
+
+1. 从时间成本上的区别：虚函数调用到函数本身需要5次取地址，而实函数只需要一步。
+2. 从空间上看：虚函数调用需要经过虚表，相比实函数，虚函数的空间浪费了一个虚表。
+
+<font face="楷体" color='red'>一个扩展问题：虚表被存放在了哪个区？堆？栈？数据区？代码区?其他？</font>
+
+#### 多重继承——虚表探究
+
+问题1. 虚表被存放在哪个区？
+问题2. 多重继承下的虚表包含哪些内容？
+
+实验：
+实验代码
+```c++
+#include <iostream>
+
+using namespace std;
+
+class Point2d {
+    public:
+        Point2d():_x(0), _y(0)
+        {
+            cout << "Point2d()" << endl;
+        }
+        virtual ~Point2d(){
+            cout << "~Point2d()" << endl;
+        }
+    private:
+        float _x, _y;
+};
+
+class Point3d: public Point2d {
+    public:
+        Point3d():Point2d(), _z(0){
+            cout << "Point3d()" << endl;
+        }
+        virtual ~Point3d(){
+            cout << "~Point3d()" << endl;
+        }
+    private:
+        float _z;
+};
+
+class Vertex {
+    public:
+        Vertex():next(NULL){
+            cout << "Vertex()" << endl;
+        }
+        virtual ~Vertex(){
+            cout << "~Vertex()" << endl;
+        }
+    protected:
+        Vertex *next;
+};
+
+class Vertex3d:public Point3d,public Vertex {
+    public:
+        Vertex3d():Point3d(), Vertex(), mumble(0){
+            cout << "Vertex3d" << endl;
+        }
+        virtual ~Vertex3d(){
+            cout << "~Vertex3d()" << endl;
+        }
+
+    private:
+        float mumble;
+};
+
+void Mumble(const Vertex* v)
+{
+
+}
+
+int main()
+{
+    Vertex3d v3d;
+    Vertex3d v3d1;
+    Vertex* pv;
+    Point2d*  p2d;
+    Point3d* p3d;
+    Point3d* p3d1;
+    pv = &v3d;
+    p3d = &v3d;
+    p3d1 = &v3d1;
+    p2d = &v3d;
+    cout << hex << pv << endl;
+    cout << hex << p3d << endl;
+    cout << hex << p3d1 << endl;
+    cout << hex << p2d << endl;
+
+    return 0;
+}
+```
+调试过程如下：
+```c++
+Temporary breakpoint 1, main () at char3_5.cpp:72
+72          cout << hex << pv << endl;
+(gdb) p/x &v3d
+$1 = 0x7ffffffee110
+(gdb) p/x &v3d1
+$2 = 0x7ffffffee140
+(gdb) x/10xg $1
+0x7ffffffee110: 0x0000000008201c58      0x0000000000000000 #(0x0000000008201c58 就是虚表指针)
+0x7ffffffee120: 0x0000000000000000      0x0000000008201c78
+0x7ffffffee130: 0x0000000000000000      0x0000000100000000
+0x7ffffffee140: 0x0000000008201c58      0x0000000000000000
+0x7ffffffee150: 0x0000000000000000      0x0000000008201c78
+(gdb) x/10xg $2
+0x7ffffffee140: 0x0000000008201c58      0x0000000000000000
+0x7ffffffee150: 0x0000000000000000      0x0000000008201c78
+0x7ffffffee160: 0x0000000000000000      0x0000000000000000
+0x7ffffffee170: 0x0000000008001590      0xf11b39bbe2d3af00
+0x7ffffffee180: 0x00007ffffffee270      0x0000000000000000
+(gdb) shell ps -ef|grep a.out
+xuhuanh+  6116  5527  0 17:55 tty1     00:00:00 gdb a.out
+xuhuanh+  6118  6116  0 17:55 tty1     00:00:00 /mnt/f/VMShare/Inside_the_CPP_Object_Model/DataAlgh/a.out
+xuhuanh+  6131  5918  0 17:57 tty2     00:00:00 grep --color=auto a.out
+(gdb) shell cat /proc/6118/maps
+08000000-08001000 rwxp 00000000 00:00 26559                      /mnt/f/VMShare/Inside_the_CPP_Object_Model/DataAlgh/a.out
+08001000-08002000 r-xp 00001000 00:00 26559                      /mnt/f/VMShare/Inside_the_CPP_Object_Model/DataAlgh/a.out (.text)
+08201000-08202000 r--p 00001000 00:00 26559                      /mnt/f/VMShare/Inside_the_CPP_Object_Model/DataAlgh/a.out(.data)
+08202000-08203000 rw-p 00002000 00:00 26559                      /mnt/f/VMShare/Inside_the_CPP_Object_Model/DataAlgh/a.out(.bss)
+08403000-08424000 rw-p 00000000 00:00 0                          [heap]
+7ffffe6b0000-7ffffe84d000 r-xp 00000000 00:00 562181             /lib/x86_64-linux-gnu/libm-2.27.so
+...
+7fffff62a000-7fffff62b000 rw-p 0002a000 00:00 562173             /lib/x86_64-linux-gnu/ld-2.27.so
+7fffff62b000-7fffff62c000 rw-p 00000000 00:00 0
+7fffff7c0000-7fffff7c2000 rw-p 00000000 00:00 0
+7fffff7d0000-7fffff7d2000 rw-p 00000000 00:00 0
+7fffff7e0000-7fffff7e2000 rw-p 00000000 00:00 0
+7fffff7ef000-7ffffffef000 rw-p 00000000 00:00 0                  [stack]
+7ffffffef000-7fffffff0000 r-xp 00000000 00:00 0                  [vdso]
+(gdb) x/60xg 0x0000000008201c58 - 0x10 #产看虚表内容，为什么要-010?
+0x8201c48 <_ZTV8Vertex3d>:      0x0000000000000000(???)            0x0000000008201ce8(类型信息 _ZTI8Vertex3d)
+0x8201c58 <_ZTV8Vertex3d+16>:   0x00000000080014e6(某个代码段)      0x000000000800155c(某个代码段)
+0x8201c68 <_ZTV8Vertex3d+32>:   0xffffffffffffffe8(???)            0x0000000008201ce8(类型信息 _ZTI8Vertex3d)
+0x8201c78 <_ZTV8Vertex3d+48>:   0x0000000008001556(某个代码段)      0x0000000008001587(某个代码段)
+0x8201c88 <_ZTV6Vertex>:        0x0000000000000000      0x0000000008201d20(类型信息)
+0x8201c98 <_ZTV6Vertex+16>:     0x00000000080013c0(某个代码段)      0x0000000008001406(某个代码段)
+0x8201ca8 <_ZTV7Point3d>:       0x0000000000000000      0x0000000008201d30(类型信息)
+0x8201cb8 <_ZTV7Point3d+16>:    0x00000000080012f0(某个代码段)      0x0000000008001342(某个代码段)
+0x8201cc8 <_ZTV7Point2d>:       0x0000000000000000      0x0000000008201d48(类型信息)
+0x8201cd8 <_ZTV7Point2d+16>:    0x00000000080011fe(某个代码段)      0x0000000008001244(某个代码段)
+#下面的都是不是虚表了，可以通过c++filt _ZTI8Vertex3d查看器含义为“typeinfo for Vertex3d”
+0x8201ce8 <_ZTI8Vertex3d>:      0x00007fffff3eb4f8      0x0000000008001668
+0x8201cf8 <_ZTI8Vertex3d+16>:   0x0000000200000000      0x0000000008201d30
+0x8201d08 <_ZTI8Vertex3d+32>:   0x0000000000000002      0x0000000008201d20
+0x8201d18 <_ZTI8Vertex3d+48>:   0x0000000000001802      0x00007fffff3ea7f8
+0x8201d28 <_ZTI6Vertex+8>:      0x0000000008001678      0x00007fffff3eb438
+0x8201d38 <_ZTI7Point3d+8>:     0x0000000008001680      0x0000000008201d48
+0x8201d48 <_ZTI7Point2d>:       0x00007fffff3ea7f8      0x0000000008001690
+#下面的就和类没有关系了
+0x8201d58:      0x0000000000000001      0x0000000000000001
+(gdb) x/20xg 0x00000000080012f0  #随意查看一个“某个代码段”
+0x80012f0 <Point3d::~Point3d()>:        0x10ec8348e5894855      0xb5158d48f87d8948
+0x8001300 <Point3d::~Point3d()+16>:     0x48f8458b48002009      0x000323358d481089
+0x8001310 <Point3d::~Point3d()+32>:     0x00200d083d8d4800      0xc28948fffff9c3e8
+0x8001320 <Point3d::~Point3d()+48>:     0x4800200ca9058b48      0xf9cee8d78948c689
+0x8001330 <Point3d::~Point3d()+64>:     0x8948f8458b48ffff      0xc990fffffec0e8c7
+0x8001340 <Point3d::~Point3d()+80>:     0x8348e589485590c3      0x8b48f87d894810ec
+0x8001350 <Point3d::~Point3d()+14>:     0xff96e8c78948f845      0x18bef8458b48ffff
+0x8001360 <Point3d::~Point3d()+30>:     0x85e8c78948000000      0x485590c3c9fffff9
+0x8001370 <Vertex::Vertex()+2>: 0x894810ec8348e589      0x200917158d48f87d
+(gdb) x/20xg 0x0000000008001342 #随意查看一个“某个代码段”
+0x8001342 <Point3d::~Point3d()>:        0x10ec8348e5894855      0xf8458b48f87d8948
+0x8001352 <Point3d::~Point3d()+16>:     0xffffff96e8c78948      0x000018bef8458b48
+0x8001362 <Point3d::~Point3d()+32>:     0xfff985e8c7894800      0xe589485590c3c9ff
+0x8001372 <Vertex::Vertex()+4>: 0xf87d894810ec8348      0x4800200917158d48
+```
+实验结论：
+1. 通过打印出v3d和v3d1的虚表指针可以确定同一个类的多个对象的虚表指针只有一个虚表；
+2. 通过当前进程的maps和变量v3d的虚表指针的地址对比可以看到v3d虚表的地址0x08201c58在区间08201000-08202000之间，而依据进程空间分布表可以确定该区间属于.data段中；
+3. 可以看到在虚表里面有两个未知的字段，若干个类型信息字段和指向代码段的字段。查看了Point3d的两个代码段发现都是析构函数。查看Vertex3d的四个代码段发现前两个也是析构函数，后两个未知。
+
+问题
